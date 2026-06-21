@@ -209,6 +209,47 @@ class AppStore extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> updateEmail({
+    required String id,
+    required String email,
+    required String password,
+  }) async {
+    final trimmedEmail = email.trim();
+    final trimmedPassword = password.trim();
+    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
+      throw ArgumentError('Email and password are required.');
+    }
+
+    final index = _emails.indexWhere((item) => item.id == id);
+    if (index == -1) {
+      throw StateError('This email no longer exists.');
+    }
+
+    final exists = _emails.any(
+      (item) =>
+          item.id != id &&
+          item.email.toLowerCase() == trimmedEmail.toLowerCase(),
+    );
+    if (exists) {
+      throw StateError('This email already exists.');
+    }
+
+    final current = _emails[index];
+    _emails[index] = EmailCredential(
+      id: current.id,
+      email: trimmedEmail,
+      password: trimmedPassword,
+      createdAt: current.createdAt,
+    );
+    await _persist();
+  }
+
+  Future<void> deleteEmail(String id) async {
+    _emails.removeWhere((item) => item.id == id);
+    _entries.removeWhere((entry) => entry.emailId == id);
+    await _persist();
+  }
+
   /// Adds a new app/website password entry linked to an existing email.
   Future<void> addEntry({
     required String appName,
@@ -233,6 +274,42 @@ class AppStore extends ChangeNotifier {
         createdAt: DateTime.now(),
       ),
     );
+    await _persist();
+  }
+
+  Future<void> updateEntry({
+    required String id,
+    required String appName,
+    required String username,
+    required String emailId,
+    required String password,
+  }) async {
+    final trimmedAppName = appName.trim();
+    final trimmedUsername = username.trim();
+    final trimmedPassword = password.trim();
+    if (trimmedAppName.isEmpty || emailId.isEmpty || trimmedPassword.isEmpty) {
+      throw ArgumentError('App name, email and password are required.');
+    }
+
+    final index = _entries.indexWhere((entry) => entry.id == id);
+    if (index == -1) {
+      throw StateError('This password entry no longer exists.');
+    }
+
+    final current = _entries[index];
+    _entries[index] = PasswordEntry(
+      id: current.id,
+      appName: trimmedAppName,
+      username: trimmedUsername,
+      emailId: emailId,
+      password: trimmedPassword,
+      createdAt: current.createdAt,
+    );
+    await _persist();
+  }
+
+  Future<void> deleteEntry(String id) async {
+    _entries.removeWhere((entry) => entry.id == id);
     await _persist();
   }
 

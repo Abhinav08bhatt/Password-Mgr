@@ -67,6 +67,7 @@ class VaultPage extends StatefulWidget {
 class _VaultPageState extends State<VaultPage> {
   final TextEditingController _searchController = TextEditingController();
   final Map<String, bool> _visiblePasswords = <String, bool>{};
+  String? _activeCardId;
 
   @override
   void dispose() {
@@ -203,62 +204,81 @@ class _VaultPageState extends State<VaultPage> {
   }
 
   Widget _buildEmailCard(EmailCredential email) {
+    final isActive = _activeCardId == 'email:${email.id}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: _GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    email.email,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
+      child: GestureDetector(
+        onLongPress: () => _setActiveCard('email:${email.id}'),
+        onTap: isActive ? _clearActiveCard : null,
+        child: _GlassCard(
+          isActive: isActive,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: isActive
+                    ? Padding(
+                        key: const ValueKey('email-actions'),
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _CardActions(
+                          onEdit: () => _editEmail(email),
+                          onRemove: () => _removeEmail(email),
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('email-actions-empty')),
+              ),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      email.email,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => _toggleVisibility(email.id),
-                  icon: Icon(
-                    _visiblePasswords[email.id] == true
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
+                  IconButton(
+                    onPressed: () => _toggleVisibility(email.id),
+                    icon: Icon(
+                      _visiblePasswords[email.id] == true
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    color: Colors.white70,
+                    tooltip: 'Show password',
                   ),
-                  color: Colors.white70,
-                  tooltip: 'Show password',
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const _SoftDivider(),
-            const SizedBox(height: 6),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    _visiblePasswords[email.id] == true
-                        ? email.password
-                        : _maskPassword(email.password),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      letterSpacing: 1.8,
-                      color: Colors.white,
+                ],
+              ),
+              const SizedBox(height: 6),
+              const _SoftDivider(),
+              const SizedBox(height: 6),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      _visiblePasswords[email.id] == true
+                          ? email.password
+                          : _maskPassword(email.password),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        letterSpacing: 1.8,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => _copyPassword(email.password),
-                  icon: const Icon(Icons.content_copy_outlined),
-                  color: Colors.white70,
-                  tooltip: 'Copy password',
-                ),
-              ],
-            ),
-          ],
+                  IconButton(
+                    onPressed: () => _copyPassword(email.password),
+                    icon: const Icon(Icons.content_copy_outlined),
+                    color: Colors.white70,
+                    tooltip: 'Copy password',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -269,71 +289,90 @@ class _VaultPageState extends State<VaultPage> {
     final title = entry.username.isEmpty
         ? entry.appName
         : '${entry.appName} (${entry.username})';
+    final isActive = _activeCardId == 'entry:${entry.id}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: _GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w400,
-                color: Colors.white,
+      child: GestureDetector(
+        onLongPress: () => _setActiveCard('entry:${entry.id}'),
+        onTap: isActive ? _clearActiveCard : null,
+        child: _GlassCard(
+          isActive: isActive,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: isActive
+                    ? Padding(
+                        key: const ValueKey('entry-actions'),
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _CardActions(
+                          onEdit: () => _editEntry(entry),
+                          onRemove: () => _removeEntry(entry),
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('entry-actions-empty')),
               ),
-            ),
-            const SizedBox(height: 14),
-            const _SoftDivider(),
-            const SizedBox(height: 6), // icon gives the padding
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    linkedEmail?.email ?? 'Unknown email',
-                    style: const TextStyle(fontSize: 16, color: _mutedText),
-                  ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
                 ),
-                IconButton(
-                  onPressed: () => _toggleVisibility(entry.id),
-                  icon: Icon(
-                    _visiblePasswords[entry.id] == true
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
-                  color: Colors.white70,
-                  tooltip: 'Show password',
-                ),
-              ],
-            ),
-            const SizedBox(height: 6), // icon gives the padding
-            const _SoftDivider(),
-            const SizedBox(height: 6),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    _visiblePasswords[entry.id] == true
-                        ? entry.password
-                        : _maskPassword(entry.password),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      letterSpacing: 1.8,
-                      color: Colors.white,
+              ),
+              const SizedBox(height: 14),
+              const _SoftDivider(),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      linkedEmail?.email ?? 'Unknown email',
+                      style: const TextStyle(fontSize: 16, color: _mutedText),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => _copyPassword(entry.password),
-                  icon: const Icon(Icons.content_copy_outlined),
-                  color: Colors.white70,
-                  tooltip: 'Copy password',
-                ),
-              ],
-            ),
-          ],
+                  IconButton(
+                    onPressed: () => _toggleVisibility(entry.id),
+                    icon: Icon(
+                      _visiblePasswords[entry.id] == true
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    color: Colors.white70,
+                    tooltip: 'Show password',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const _SoftDivider(),
+              const SizedBox(height: 6),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      _visiblePasswords[entry.id] == true
+                          ? entry.password
+                          : _maskPassword(entry.password),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        letterSpacing: 1.8,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _copyPassword(entry.password),
+                    icon: const Icon(Icons.content_copy_outlined),
+                    color: Colors.white70,
+                    tooltip: 'Copy password',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -366,7 +405,26 @@ class _VaultPageState extends State<VaultPage> {
     );
 
     if (saved == true && mounted) {
-      // _showSnackBar('Email saved');
+      _clearActiveCard();
+    }
+  }
+
+  Future<void> _openEditEmailSheet(
+    BuildContext context,
+    EmailCredential email,
+  ) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _AddEmailSheet(store: widget.store, initialEmail: email),
+    );
+
+    if (saved == true && mounted) {
+      _clearActiveCard();
     }
   }
 
@@ -382,8 +440,70 @@ class _VaultPageState extends State<VaultPage> {
     );
 
     if (saved == true && mounted) {
-      // _showSnackBar('Password saved');
+      _clearActiveCard();
     }
+  }
+
+  Future<void> _openEditPasswordSheet(
+    BuildContext context,
+    PasswordEntry entry,
+  ) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _AddPasswordSheet(store: widget.store, initialEntry: entry),
+    );
+
+    if (saved == true && mounted) {
+      _clearActiveCard();
+    }
+  }
+
+  void _setActiveCard(String cardId) {
+    setState(() {
+      _activeCardId = cardId;
+    });
+  }
+
+  void _clearActiveCard() {
+    if (_activeCardId == null) {
+      return;
+    }
+    setState(() {
+      _activeCardId = null;
+    });
+  }
+
+  Future<void> _editEmail(EmailCredential email) async {
+    _clearActiveCard();
+    await _openEditEmailSheet(context, email);
+  }
+
+  Future<void> _editEntry(PasswordEntry entry) async {
+    _clearActiveCard();
+    await _openEditPasswordSheet(context, entry);
+  }
+
+  Future<void> _removeEmail(EmailCredential email) async {
+    await widget.store.deleteEmail(email.id);
+    if (!mounted) {
+      return;
+    }
+    _visiblePasswords.remove(email.id);
+    _clearActiveCard();
+  }
+
+  Future<void> _removeEntry(PasswordEntry entry) async {
+    await widget.store.deleteEntry(entry.id);
+    if (!mounted) {
+      return;
+    }
+    _visiblePasswords.remove(entry.id);
+    _clearActiveCard();
   }
 
   void _toggleVisibility(String id) {
@@ -712,9 +832,10 @@ class _SoftDivider extends StatelessWidget {
 }
 
 class _GlassCard extends StatelessWidget {
-  const _GlassCard({required this.child});
+  const _GlassCard({required this.child, this.isActive = false});
 
   final Widget child;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -725,14 +846,104 @@ class _GlassCard extends StatelessWidget {
     // since each blurred card has to be re-rendered as you scroll. This
     // keeps the vibe without paying that cost.
     return RepaintBoundary(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 8, 10, 1),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: _cardBorder),
-          color: _cardBackground,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 180),
+        scale: isActive ? 1.02 : 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.fromLTRB(20, 8, 10, 1),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: isActive ? const Color(0x66FFFFFF) : _cardBorder,
+            ),
+            color: _cardBackground,
+            boxShadow: isActive
+                ? const <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x44000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ]
+                : const <BoxShadow>[],
+          ),
+          child: child,
         ),
-        child: child,
+      ),
+    );
+  }
+}
+
+class _CardActions extends StatelessWidget {
+  const _CardActions({required this.onEdit, required this.onRemove});
+
+  final VoidCallback onEdit;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        _ActionChip(
+          label: 'Edit',
+          icon: Icons.edit_rounded,
+          color: Colors.blueAccent,
+          onTap: onEdit,
+        ),
+        const SizedBox(width: 10),
+        _ActionChip(
+          label: 'Remove',
+          icon: Icons.delete_outline_rounded,
+          color: Colors.redAccent,
+          onTap: onRemove,
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionChip extends StatelessWidget {
+  const _ActionChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: color.withValues(alpha: 0.14),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -785,9 +996,10 @@ class _SheetShell extends StatelessWidget {
 
 /// Bottom sheet for adding a new email + password identity.
 class _AddEmailSheet extends StatefulWidget {
-  const _AddEmailSheet({required this.store});
+  const _AddEmailSheet({required this.store, this.initialEmail});
 
   final AppStore store;
+  final EmailCredential? initialEmail;
 
   @override
   State<_AddEmailSheet> createState() => _AddEmailSheetState();
@@ -800,6 +1012,18 @@ class _AddEmailSheetState extends State<_AddEmailSheet> {
   bool _obscurePassword = true;
   bool _isSaving = false;
   String? _errorText;
+
+  bool get _isEditing => widget.initialEmail != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialEmail = widget.initialEmail;
+    if (initialEmail != null) {
+      _emailController.text = initialEmail.email;
+      _passwordController.text = initialEmail.password;
+    }
+  }
 
   @override
   void dispose() {
@@ -819,15 +1043,21 @@ class _AddEmailSheetState extends State<_AddEmailSheet> {
     });
 
     try {
-      await widget.store.addEmail(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+      if (_isEditing) {
+        await widget.store.updateEmail(
+          id: widget.initialEmail!.id,
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+      } else {
+        await widget.store.addEmail(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+      }
       if (!mounted) {
         return;
       }
-      // Pop only after the save (and the list rebuild it triggers) is
-      // fully done, so the closing animation starts on a clean frame.
       Navigator.of(context).pop(true);
     } on StateError catch (error) {
       setState(() {
@@ -845,7 +1075,7 @@ class _AddEmailSheetState extends State<_AddEmailSheet> {
   @override
   Widget build(BuildContext context) {
     return _SheetShell(
-      title: 'add email',
+      title: _isEditing ? 'edit email' : 'add email',
       child: Form(
         key: _formKey,
         child: Column(
@@ -905,9 +1135,10 @@ class _AddEmailSheetState extends State<_AddEmailSheet> {
 /// Bottom sheet for adding a new app/website password, linked to one of
 /// the already-saved emails.
 class _AddPasswordSheet extends StatefulWidget {
-  const _AddPasswordSheet({required this.store});
+  const _AddPasswordSheet({required this.store, this.initialEntry});
 
   final AppStore store;
+  final PasswordEntry? initialEntry;
 
   @override
   State<_AddPasswordSheet> createState() => _AddPasswordSheetState();
@@ -922,6 +1153,20 @@ class _AddPasswordSheetState extends State<_AddPasswordSheet> {
   bool _isSaving = false;
   String? _errorText;
   late String _selectedEmailId = widget.store.emails.first.id;
+
+  bool get _isEditing => widget.initialEntry != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialEntry = widget.initialEntry;
+    if (initialEntry != null) {
+      _appNameController.text = initialEntry.appName;
+      _usernameController.text = initialEntry.username;
+      _passwordController.text = initialEntry.password;
+      _selectedEmailId = initialEntry.emailId;
+    }
+  }
 
   @override
   void dispose() {
@@ -942,12 +1187,22 @@ class _AddPasswordSheetState extends State<_AddPasswordSheet> {
     });
 
     try {
-      await widget.store.addEntry(
-        appName: _appNameController.text,
-        username: _usernameController.text,
-        emailId: _selectedEmailId,
-        password: _passwordController.text,
-      );
+      if (_isEditing) {
+        await widget.store.updateEntry(
+          id: widget.initialEntry!.id,
+          appName: _appNameController.text,
+          username: _usernameController.text,
+          emailId: _selectedEmailId,
+          password: _passwordController.text,
+        );
+      } else {
+        await widget.store.addEntry(
+          appName: _appNameController.text,
+          username: _usernameController.text,
+          emailId: _selectedEmailId,
+          password: _passwordController.text,
+        );
+      }
       if (!mounted) {
         return;
       }
@@ -963,7 +1218,7 @@ class _AddPasswordSheetState extends State<_AddPasswordSheet> {
   @override
   Widget build(BuildContext context) {
     return _SheetShell(
-      title: 'add password',
+      title: _isEditing ? 'edit password' : 'add password',
       child: Form(
         key: _formKey,
         child: Column(
