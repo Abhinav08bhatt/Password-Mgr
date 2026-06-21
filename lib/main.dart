@@ -83,74 +83,84 @@ class _VaultPageState extends State<VaultPage> {
         final groupedEntries = widget.store.groupedVisibleEntries();
         final isSearching = widget.store.searchQuery.isNotEmpty;
         return Scaffold(
-          body: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  Color.fromARGB(0, 4, 4, 4),
-                  Color.fromARGB(0, 2, 2, 2),
-                  Color.fromARGB(0, 0, 0, 0),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: <Widget>[
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _VaultHeaderDelegate(
-                      controller: _searchController,
-                      onChanged: widget.store.updateSearchQuery,
-                    ),
+          body: Stack(
+            children: <Widget>[
+              DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.fromARGB(0, 4, 4, 4),
+                      Color.fromARGB(0, 2, 2, 2),
+                      Color.fromARGB(0, 0, 0, 0),
+                    ],
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    sliver: SliverList.list(
-                      children: <Widget>[
-                        if (!isSearching) ...<Widget>[
-                          _SectionHeader(
-                            title: 'My Email',
-                            onAdd: () => _openAddEmailSheet(context),
-                          ),
-                          const SizedBox(height: 14),
-                          if (widget.store.emails.isEmpty)
-                            const _EmptyStateCard(
-                              title: 'No email added yet',
-                              message:
-                                  'Add your email accounts first. Those emails will be available while saving app and website passwords.',
-                            )
-                          else
-                            ...widget.store.emails.map(_buildEmailCard),
-                          const SizedBox(height: 24),
-                        ],
-                        if (groupedEntries.isEmpty)
-                          const _EmptyStateCard(
-                            title: 'No passwords saved yet',
-                            message:
-                                'Use the floating add button to store passwords for apps and websites after you add at least one email.',
-                          )
-                        else
-                          ...groupedEntries.entries.expand((group) {
-                            return <Widget>[
-                              _AlphabetHeader(letter: group.key),
-                              const SizedBox(height: 10),
-                              ...group.value.map(_buildPasswordCard),
-                              const SizedBox(height: 16),
-                            ];
-                          }),
-                        const SizedBox(height: 96),
-                      ],
-                    ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: <Widget>[
+                      const SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _VaultHeaderDelegate(),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 140),
+                        sliver: SliverList.list(
+                          children: <Widget>[
+                            if (!isSearching) ...<Widget>[
+                              _SectionHeader(
+                                title: 'My Email',
+                                onAdd: () => _openAddEmailSheet(context),
+                              ),
+                              const SizedBox(height: 14),
+                              if (widget.store.emails.isEmpty)
+                                const _EmptyStateCard(
+                                  title: 'No email added yet',
+                                  message:
+                                      'Add your email accounts first. Those emails will be available while saving app and website passwords.',
+                                )
+                              else
+                                ...widget.store.emails.map(_buildEmailCard),
+                              const SizedBox(height: 24),
+                            ],
+                            if (groupedEntries.isEmpty)
+                              const _EmptyStateCard(
+                                title: 'No passwords saved yet',
+                                message:
+                                    'Use the floating add button to store passwords for apps and websites after you add at least one email.',
+                              )
+                            else
+                              ...groupedEntries.entries.expand((group) {
+                                return <Widget>[
+                                  _AlphabetHeader(letter: group.key),
+                                  const SizedBox(height: 10),
+                                  ...group.value.map(_buildPasswordCard),
+                                  const SizedBox(height: 16),
+                                ];
+                              }),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _BottomControls(
+                  controller: _searchController,
+                  onChanged: widget.store.updateSearchQuery,
+                  addButton: _buildFloatingButton(context),
+                ),
+              ),
+            ],
           ),
-          floatingActionButton: _buildFloatingButton(context),
         );
       },
     );
@@ -158,8 +168,10 @@ class _VaultPageState extends State<VaultPage> {
 
   Widget _buildFloatingButton(BuildContext context) {
     return Container(
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: const <BoxShadow>[
           BoxShadow(
             color: Color(0x55000000),
@@ -169,34 +181,34 @@ class _VaultPageState extends State<VaultPage> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: FloatingActionButton(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color.fromARGB(43, 255, 255, 255)),
-          ),
-          onPressed: () {
-            if (widget.store.emails.isEmpty) {
-              // _showSnackBar(
-              //   'Add an email first so you can link it to app passwords.',
-              // );
-              _openAddEmailSheet(context);
-              return;
-            }
-            _openAddPasswordSheet(context);
-          },
-          child: Ink(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[Color(0xFF5B5B5B), Color(0xFF2C2C2C)],
+        borderRadius: BorderRadius.circular(22),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              if (widget.store.emails.isEmpty) {
+                _openAddEmailSheet(context);
+                return;
+              }
+              _openAddPasswordSheet(context);
+            },
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: const Color.fromARGB(43, 255, 255, 255),
+                ),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: <Color>[
+                    Color(0xFF202020),
+                    Color(0xFF181818),
+                  ],
+                ),
               ),
+              child: const Center(child: Icon(Icons.add, size: 36)),
             ),
-            child: const Center(child: Icon(Icons.add, size: 40)),
           ),
         ),
       ),
@@ -536,15 +548,17 @@ class _SearchField extends StatelessWidget {
   const _SearchField({
     required this.controller,
     required this.onChanged,
+    this.height = 52,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
+      height: height,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
@@ -581,6 +595,9 @@ class _SearchField extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 onChanged: onChanged,
+                  onTapOutside: (_) {
+                    FocusScope.of(context).unfocus();
+                  },
                 maxLines: 1,
                 textAlignVertical: TextAlignVertical.center,
                 style: const TextStyle(
@@ -611,19 +628,13 @@ class _SearchField extends StatelessWidget {
 }
 
 class _VaultHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _VaultHeaderDelegate({
-    required this.controller,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+  const _VaultHeaderDelegate();
 
   @override
-  double get minExtent => 80;
+  double get minExtent => 72;
 
   @override
-  double get maxExtent => 320;
+  double get maxExtent => 248;
 
   @override
   Widget build(
@@ -635,39 +646,24 @@ class _VaultHeaderDelegate extends SliverPersistentHeaderDelegate {
       0.0,
       1.0,
     );
-    return _VaultHeader(
-      progress: progress,
-      controller: controller,
-      onChanged: onChanged,
-    );
+    return _VaultHeader(progress: progress);
   }
 
   @override
-  bool shouldRebuild(covariant _VaultHeaderDelegate oldDelegate) {
-    return oldDelegate.controller != controller ||
-        oldDelegate.onChanged != onChanged;
-  }
+  bool shouldRebuild(covariant _VaultHeaderDelegate oldDelegate) => false;
 }
 
 class _VaultHeader extends StatelessWidget {
-  const _VaultHeader({
-    required this.progress,
-    required this.controller,
-    required this.onChanged,
-  });
+  const _VaultHeader({required this.progress});
 
   final double progress;
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final titleSize = lerpDouble(20, 30, progress)!;
-    final titleTop = lerpDouble(20, 88, progress)!;
-    final searchTop = lerpDouble(6, 136, progress)!;
-    final horizontalPadding = lerpDouble(0, 48, progress)!;
+    final titleSize = lerpDouble(18, 30, progress)!;
+    final titleTop = lerpDouble(18, 120, progress)!;
     final titleOpacity = Curves.easeOut.transform(
-      ((progress - 0.18) / 0.92).clamp(0.0, 1.0),
+      ((progress - 0.08) / 0.92).clamp(0.0, 1.0),
     );
 
     return Container(
@@ -677,12 +673,12 @@ class _VaultHeader extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [
             Color.fromARGB(255, 0, 0, 0),
-            Color.fromARGB(199, 0, 0, 0),
-            Color.fromARGB(166, 0, 0, 0),
-            Color.fromARGB(61, 0, 0, 0),  // 24%
+            Color.fromARGB(236, 0, 0, 0),
+            Color.fromARGB(185, 0, 0, 0),
+            Color.fromARGB(72, 0, 0, 0),
             Color.fromARGB(0, 0, 0, 0),
           ],
-          stops: [0.00,0.05, 0.26, 0.71, 0.89],
+          stops: [0.00, 0.12, 0.42, 0.78, 1.00],
         ),
       ),
       child: Padding(
@@ -709,16 +705,59 @@ class _VaultHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              top: searchTop,
-              left: horizontalPadding,
-              right: horizontalPadding,
-              child: _SearchField(
-                controller: controller,
-                onChanged: onChanged,
-              ),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomControls extends StatelessWidget {
+  const _BottomControls({
+    required this.controller,
+    required this.onChanged,
+    required this.addButton,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final Widget addButton;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: false,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              Color.fromARGB(0, 0, 0, 0),
+              Color.fromARGB(190, 0, 0, 0),
+              Color.fromARGB(255, 0, 0, 0),
+            ],
+            stops: <double>[0, 0.45, 1],
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 18),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: _SearchField(
+                    controller: controller,
+                    onChanged: onChanged,
+                    height: 58,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                addButton,
+              ],
+            ),
+          ),
         ),
       ),
     );
